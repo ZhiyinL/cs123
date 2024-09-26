@@ -4,13 +4,16 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 import numpy as np
 import time
+import math
 from collections import deque
 
 JOINT_NAME = 'leg_front_r_1'
 ####
 ####
-KP = 0 # YOUR KP VALUE
-KD = 0 # YOUR KD VALUE
+KP = 1 # YOUR KP VALUE
+KD = 0.1 # YOUR KD VALUE
+
+DELAY = 1
 ####
 ####
 LOOP_RATE = 200  # Hz
@@ -41,7 +44,7 @@ class JointStateSubscriber(Node):
         self.joint_vel = 0
         self.target_joint_pos = 0
         self.target_joint_vel = 0
-        # self.torque_history = deque(maxlen=DELAY)
+        self.torque_history = deque([(0,0)] * DELAY, maxlen=DELAY+1)
 
         # Create a timer to run pd_loop at the specified frequency
         self.create_timer(1.0 / LOOP_RATE, self.pd_loop)
@@ -51,14 +54,37 @@ class JointStateSubscriber(Node):
         #### YOUR CODE HERE
         ####
 
-        # target_joint_pos, target_joint_vel
-        return 0, 0 
+        ### with Delay ###
+        # buffered_pos, buffered_vel = self.torque_history.popleft()
+        # self.torque_history.append(joint_pos, joint_vel)
+        # return buffered_pos, buffered_vel
+
+        ### without Delay ###
+        return self.target_joint_pos, self.target_joint_vel
 
     def calculate_pd_torque(self, joint_pos, joint_vel, target_joint_pos, target_joint_vel):
         ####
         #### YOUR CODE HERE
         ####
-        return 0
+
+        ### BANG-BANG ###
+        # if joint_pos < target_joint_pos:
+        #   return 0.1*MAX_TORQUE 
+        # elif joint_pos > target_joint_pos:
+        #   return -0.1*MAX_TORQUE
+        # else:
+        #   return 0
+
+        ### PD Control ###
+        # return KP*(joint_pos - target_joint_pos)
+        
+        ### Sinusoidal Control ###
+        # current_time = time.time()
+        # joint_pos_desired = math.sin(current_time)
+        # return KP*(joint_pos - joint_pos_desired) + KD*(joint_vel - target_joint_vel)
+
+        ### PID Control ###
+        return KP*(joint_pos - target_joint_pos) + KD*(joint_vel - target_joint_vel)
 
     def print_info(self):
         if self.print_counter == 0:
