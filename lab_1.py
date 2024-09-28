@@ -55,8 +55,8 @@ class JointStateSubscriber(Node):
         ####
 
         ### with Delay ###
-        # buffered_pos, buffered_vel = self.torque_history.popleft()
-        # self.torque_history.append(joint_pos, joint_vel)
+        # self.torque_history.append((joint_pos, joint_vel))
+        # (buffered_pos, buffered_vel) = self.torque_history.popleft()
         # return buffered_pos, buffered_vel
 
         ### without Delay ###
@@ -76,15 +76,15 @@ class JointStateSubscriber(Node):
         #   return 0
 
         ### PD Control ###
-        # return KP*(joint_pos - target_joint_pos)
+        # return KP*(target_joint_pos - joint_pos)
         
         ### Sinusoidal Control ###
         # current_time = time.time()
         # joint_pos_desired = math.sin(current_time)
-        # return KP*(joint_pos - joint_pos_desired) + KD*(joint_vel - target_joint_vel)
+        # return KP*(joint_pos_desired - joint_pos) + KD*(target_joint_vel - joint_vel)
 
         ### PID Control ###
-        return KP*(joint_pos - target_joint_pos) + KD*(joint_vel - target_joint_vel)
+        return KP*(target_joint_pos-joint_pos) + KD*(target_joint_vel-joint_vel)
 
     def print_info(self):
         if self.print_counter == 0:
