@@ -78,7 +78,7 @@ for i in range(3):
     error *= 2
     print("error =", error)
     deg0 = forward_kinematics(0, 0, 0, error)
-    deg45 = forward_kinematics(0, 0, 45, error)
+    deg45 = forward_kinematics(0, 0, np.pi / 4, error)
     print("0 degrees: ", deg0)
     print("difference: ", np.linalg.norm(deg0 - deg0_std))
     print("45 degrees: ", deg45)
