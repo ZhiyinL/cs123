@@ -68,9 +68,7 @@ class InverseKinematics(Node):
                 [-np.sin(angle), 0, np.cos(angle), 0],
                 [0, 0, 0, 1]
             ]) 
-            ## TODO: Implement the rotation matrix about the y-axis
-            # return np.array([
-            # ])
+
         
         def rotation_z(angle):
             return np.array([
@@ -79,14 +77,9 @@ class InverseKinematics(Node):
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]
             ])
-            ## TODO: Implement the rotation matrix about the z-axis
-            # return np.array([
-            # ])
+
 
         def translation(x, y, z):
-            ## TODO: Implement the translation matrix
-            # return np.array([
-            # ])
             return np.array([
                 [1, 0, 0, x],
                 [0, 1, 0, y],
@@ -98,20 +91,16 @@ class InverseKinematics(Node):
         T_0_1 = translation(0.07500, -0.0445, 0) @ rotation_x(1.57080) @ rotation_z(theta1)
 
         # T_1_2 (leg_front_r_1 to leg_front_r_2)
-        ## TODO: Implement the transformation matrix from leg_front_r_1 to leg_front_r_2
         T_1_2 = translation(0, 0, 0.039) @ rotation_y(-1.57080) @ rotation_z(theta2)
 
         # T_2_3 (leg_front_r_2 to leg_front_r_3)
-        ## TODO: Implement the transformation matrix from leg_front_r_2 to leg_front_r_3
         T_2_3 = translation(0, -0.0494, 0.0685) @ rotation_y(1.57080) @ rotation_z(theta3)
 
         # T_3_ee (leg_front_r_3 to end-effector)
         T_3_ee = translation(0.06231, -0.06216, 0.018)
 
-        # TODO: Compute the final transformation. T_0_ee is a concatenation of the previous transformation matrices
         T_0_ee = T_0_1 @ T_1_2 @ T_2_3 @ T_3_ee
 
-        # TODO: Extract the end-effector position. The end effector position is a 3x3 matrix (not in homogenous coordinates)
         end_effector_position = T_0_ee[:3, 3]
 
         return end_effector_position
@@ -123,31 +112,40 @@ class InverseKinematics(Node):
             ################################################################################################
             # TODO: Implement the cost function
             ################################################################################################
-            return None, None
+            
+            assert(len(theta)==3)
+            cost = self.forward_kinematics(theta[0], theta[1], theta[2]) - target_ee
+            return np.linalg.norm(cost, ord=1)
 
         def gradient(theta, epsilon=1e-3):
             # Compute the gradient of the cost function using finite differences
             ################################################################################################
             # TODO: Implement the gradient computation
             ################################################################################################
-            return
+            
+            dfdtheta1 = (cost_function(theta + [epsilon, 0, 0]) 
+                         - cost_function(theta + [-epsilon, 0, 0])) / (2 * epsilon)
+            dfdtheta2 = (cost_function(theta + [0, epsilon, 0]) 
+                         - cost_function(theta + [0, -epsilon, 0])) / (2 * epsilon)
+            dfdtheta3 = (cost_function(theta + [0, 0, epsilon]) 
+                         - cost_function(theta + [0, 0, -epsilon])) / (2 * epsilon)
+            return np.array([dfdtheta1, dfdtheta2, dfdtheta3])
 
         theta = np.array(initial_guess)
-        learning_rate = None # TODO: Set the learning rate
-        max_iterations = None # TODO: Set the maximum number of iterations
-        tolerance = None # TODO: Set the tolerance for the L1 norm of the error
+        learning_rate = 0.1 # TODO: Set the learning rate
+        max_iterations = 1000 # TODO: Set the maximum number of iterations
+        tolerance = 0.01 # TODO: Set the tolerance for the L1 norm of the error
 
         cost_l = []
         for _ in range(max_iterations):
-            grad = gradient(theta)
-
             # Update the theta (parameters) using the gradient and the learning rate
             ################################################################################################
             # TODO: Implement the gradient update
             # TODO (BONUS): Implement the (quasi-)Newton's method for faster convergence
-            theta -= None
             ################################################################################################
-
+            
+            grad = gradient(theta)
+            theta -= learning_rate * grad
             cost, l1 = cost_function(theta)
             # cost_l.append(cost)
             if l1.mean() < tolerance:
