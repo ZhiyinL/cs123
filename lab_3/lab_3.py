@@ -115,7 +115,7 @@ class InverseKinematics(Node):
             
             assert(len(theta)==3)
             cost = self.forward_kinematics(theta[0], theta[1], theta[2]) - target_ee
-            return np.linalg.norm(cost, ord=1)
+            return cost, np.linalg.norm(cost, ord=1)
 
         def gradient(theta, epsilon=1e-3):
             # Compute the gradient of the cost function using finite differences
@@ -123,12 +123,12 @@ class InverseKinematics(Node):
             # TODO: Implement the gradient computation
             ################################################################################################
             
-            dfdtheta1 = (cost_function(theta + [epsilon, 0, 0]) 
-                         - cost_function(theta + [-epsilon, 0, 0])) / (2 * epsilon)
-            dfdtheta2 = (cost_function(theta + [0, epsilon, 0]) 
-                         - cost_function(theta + [0, -epsilon, 0])) / (2 * epsilon)
-            dfdtheta3 = (cost_function(theta + [0, 0, epsilon]) 
-                         - cost_function(theta + [0, 0, -epsilon])) / (2 * epsilon)
+            dfdtheta1 = (cost_function(theta + [epsilon, 0, 0])[1] 
+                         - cost_function(theta + [-epsilon, 0, 0])[1]) / (2 * epsilon)
+            dfdtheta2 = (cost_function(theta + [0, epsilon, 0])[1] 
+                         - cost_function(theta + [0, -epsilon, 0])[1]) / (2 * epsilon)
+            dfdtheta3 = (cost_function(theta + [0, 0, epsilon])[1]
+                         - cost_function(theta + [0, 0, -epsilon])[1]) / (2 * epsilon)
             return np.array([dfdtheta1, dfdtheta2, dfdtheta3])
 
         theta = np.array(initial_guess)
@@ -161,7 +161,14 @@ class InverseKinematics(Node):
         ################################################################################################
         # TODO: Implement the interpolation function
         ################################################################################################
-        return
+        target = 0
+        if t % 3.0 < 1:
+            target = self.ee_triangle_positions[0] + (t % 1.0) * (self.ee_triangle_positions[1] - self.ee_triangle_positions[0])
+        elif t % 3.0 < 2:
+            target = self.ee_triangle_positions[1] + (t % 1.0) * (self.ee_triangle_positions[2] - self.ee_triangle_positions[1])
+        elif t % 3.0 < 3:
+            target = self.ee_triangle_positions[2] + (t % 1.0) * (self.ee_triangle_positions[0] - self.ee_triangle_positions[2])
+        return target
 
     def ik_timer_callback(self):
         if self.joint_positions is not None:
@@ -173,7 +180,7 @@ class InverseKinematics(Node):
             ################################################################################################
             # TODO: Implement the time update
             ################################################################################################
-            
+            self.t += 0.1
             self.get_logger().info(f'Target EE: {target_ee}, Current EE: {current_ee}, Target Angles: {self.target_joint_positions}, Target Angles to EE: {self.forward_kinematics(*self.target_joint_positions)}, Current Angles: {self.joint_positions}')
 
     def pd_timer_callback(self):
