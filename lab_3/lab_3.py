@@ -25,8 +25,8 @@ class InverseKinematics(Node):
             10
         )
 
-        self.pd_timer_period = 1.0 / 200  # 200 Hz
-        self.ik_timer_period = 1.0 / 20   # 10 Hz
+        self.pd_timer_period = 1.0 / 500  # 200 Hz
+        self.ik_timer_period = 1.0 / 100   # 10 Hz
         self.pd_timer = self.create_timer(self.pd_timer_period, self.pd_timer_callback)
         self.ik_timer = self.create_timer(self.ik_timer_period, self.ik_timer_callback)
 
@@ -132,9 +132,9 @@ class InverseKinematics(Node):
             return np.array([dfdtheta1, dfdtheta2, dfdtheta3])
 
         theta = np.array(initial_guess)
-        learning_rate = 0.1 # TODO: Set the learning rate
-        max_iterations = 1000 # TODO: Set the maximum number of iterations
-        tolerance = 0.01 # TODO: Set the tolerance for the L1 norm of the error
+        learning_rate = 10 # TODO: Set the learning rate
+        max_iterations = 100 # TODO: Set the maximum number of iterations
+        tolerance = 0.00005 # TODO: Set the tolerance for the L1 norm of the error
 
         cost_l = []
         for _ in range(max_iterations):
@@ -149,7 +149,10 @@ class InverseKinematics(Node):
             cost, l1 = cost_function(theta)
             # cost_l.append(cost)
             if l1.mean() < tolerance:
+                print("converged")
                 break
+            if _ == max_iterations:
+                print("max iteractions reached")
 
         # print(f'Cost: {cost_l}')
 
