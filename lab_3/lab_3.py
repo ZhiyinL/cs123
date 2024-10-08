@@ -115,7 +115,7 @@ class InverseKinematics(Node):
             
             assert(len(theta)==3)
             cost = self.forward_kinematics(theta[0], theta[1], theta[2]) - target_ee
-            return cost, np.linalg.norm(cost, ord=1)
+            return cost, np.linalg.norm(cost, ord=1) ** 2
 
         def gradient(theta, epsilon=1e-3):
             # Compute the gradient of the cost function using finite differences
@@ -180,7 +180,7 @@ class InverseKinematics(Node):
             ################################################################################################
             # TODO: Implement the time update
             ################################################################################################
-            self.t += 0.1
+            self.t += self.ik_timer_period
             self.get_logger().info(f'Target EE: {target_ee}, Current EE: {current_ee}, Target Angles: {self.target_joint_positions}, Target Angles to EE: {self.forward_kinematics(*self.target_joint_positions)}, Current Angles: {self.joint_positions}')
 
     def pd_timer_callback(self):
