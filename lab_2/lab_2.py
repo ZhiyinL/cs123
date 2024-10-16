@@ -98,7 +98,7 @@ class ForwardKinematics(Node):
         T_0_ee = T_0_1 @ T_1_2 @ T_2_3 @ T_3_ee
 
         # TODO: Extract the end-effector position. The end effector position is a 3x3 matrix (not in homogenous coordinates)
-        end_effector_position = T_0_ee[:3, 3]
+        end_effector_position = T_0_ee[:3,3]
 
         return end_effector_position
 

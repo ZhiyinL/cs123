@@ -26,7 +26,7 @@ class InverseKinematics(Node):
         )
 
         self.pd_timer_period = 1.0 / 500  # 200 Hz
-        self.ik_timer_period = 1.0 / 100   # 10 Hz
+        self.ik_timer_period = 1.0 / 300   # 20 Hz
         self.pd_timer = self.create_timer(self.pd_timer_period, self.pd_timer_callback)
         self.ik_timer = self.create_timer(self.ik_timer_period, self.ik_timer_callback)
 
@@ -115,7 +115,7 @@ class InverseKinematics(Node):
             
             assert(len(theta)==3)
             cost = self.forward_kinematics(theta[0], theta[1], theta[2]) - target_ee
-            return cost, np.linalg.norm(cost, ord=1) ** 2
+            return cost, np.linalg.norm(cost, ord=1)**2
 
         def gradient(theta, epsilon=1e-3):
             # Compute the gradient of the cost function using finite differences
@@ -149,13 +149,13 @@ class InverseKinematics(Node):
             cost, l1 = cost_function(theta)
             # cost_l.append(cost)
             if l1.mean() < tolerance:
-                print("converged")
+                print("convergence")
                 break
-            if _ == max_iterations:
-                print("max iteractions reached")
+            if _ == max_iterations - 1:
+                print("max itermation rached!")
 
         # print(f'Cost: {cost_l}')
-
+        print("theta", theta)
         return theta
 
     def interpolate_triangle(self, t):
@@ -164,30 +164,45 @@ class InverseKinematics(Node):
         ################################################################################################
         # TODO: Implement the interpolation function
         ################################################################################################
+        # target = 0
+        # if t % 3.0 < 1:
+        #     print("in1", t)
+        #     target = self.ee_triangle_positions[0] + (t % 1.0) * (self.ee_triangle_positions[1] - self.ee_triangle_positions[0])
+        # elif t % 3.0 < 2:
+        #     print("in2", t)
+        #     target = self.ee_triangle_positions[1] + (t % 1.0) * (self.ee_triangle_positions[2] - self.ee_triangle_positions[1])
+        # elif t % 3.0 < 3:
+        #     print("in3", t)
+        #     target = self.ee_triangle_positions[2] + (t % 1.0) * (self.ee_triangle_positions[0] - self.ee_triangle_positions[2])
+        # return target
         target = 0
         if t % 3.0 < 1:
+            print("in1", t)
             target = self.ee_triangle_positions[0] + (t % 1.0) * (self.ee_triangle_positions[1] - self.ee_triangle_positions[0])
         elif t % 3.0 < 2:
+            print("in2", t)
             target = self.ee_triangle_positions[1] + (t % 1.0) * (self.ee_triangle_positions[2] - self.ee_triangle_positions[1])
         elif t % 3.0 < 3:
+            print("in3", t)
             target = self.ee_triangle_positions[2] + (t % 1.0) * (self.ee_triangle_positions[0] - self.ee_triangle_positions[2])
-        return target
+        return target 
 
     def ik_timer_callback(self):
         if self.joint_positions is not None:
             target_ee = self.interpolate_triangle(self.t)
             self.target_joint_positions = self.inverse_kinematics(target_ee, self.joint_positions)
+
             current_ee = self.forward_kinematics(*self.joint_positions)
 
             # update the current time for the triangle interpolation
             ################################################################################################
             # TODO: Implement the time update
             ################################################################################################
-            self.t += self.ik_timer_period
+            self.t += self.ik_timer_period 
             self.get_logger().info(f'Target EE: {target_ee}, Current EE: {current_ee}, Target Angles: {self.target_joint_positions}, Target Angles to EE: {self.forward_kinematics(*self.target_joint_positions)}, Current Angles: {self.joint_positions}')
 
     def pd_timer_callback(self):
-        if self.joint_positions is not None:
+        if self.target_joint_positions is not None:
 
             command_msg = Float64MultiArray()
             command_msg.data = self.target_joint_positions.tolist()
