@@ -163,10 +163,9 @@ class InverseKinematics(Node):
 
 
         self.pd_timer_period = 1.0 / 200  # 200 Hz
-        self.ik_timer_period = 1.0 / 100   # 10 Hz
+        self.ik_timer_period = 1.0 / 300   # 10 Hz
         self.pd_timer = self.create_timer(self.pd_timer_period, self.pd_timer_callback)
         self.ik_timer = self.create_timer(self.ik_timer_period, self.ik_timer_callback)
-
 
     def fr_leg_fk(self, theta):
         # Already implemented in Lab 2
@@ -183,9 +182,9 @@ class InverseKinematics(Node):
         ################################################################################################
         # Already implemented in Lab 2
         T_RF_0_1 = translation(0.07500, 0.0445, 0) @ rotation_x(-1.57080) @ rotation_z(theta[0])
-        T_RF_1_2 = translation(0,0,0.039) @ rotation_y(-1.57080) @ rotation_z(theta[1])
-        T_RF_2_3 = translation(0, -0.04940, 0.06850) @ rotation_y(1.57080) @ rotation_z(theta[2])
-        T_RF_3_ee = translation(0.06231, -0.06216, 0.01800)
+        T_RF_1_2 = translation(0, 0, 0.039) @ rotation_y(-1.57080) @ rotation_z(theta[1])
+        T_RF_2_3 = translation(0, 0.04940, 0.06850) @ rotation_y(1.57080) @ rotation_z(theta[2])
+        T_RF_3_ee = translation(0.06231, 0.06216, 0.01800)
         T_RF_0_ee = T_RF_0_1 @ T_RF_1_2 @ T_RF_2_3 @ T_RF_3_ee
         return T_RF_0_ee[:3, 3]
 
@@ -196,7 +195,7 @@ class InverseKinematics(Node):
         
         # Already implemented in Lab 2
         T_RF_0_1 = translation(-0.07500, -0.0335, 0) @ rotation_x(1.57080) @ rotation_z(theta[0])
-        T_RF_1_2 = translation(0,0,0.039) @ rotation_y(-1.57080) @ rotation_z(theta[1])
+        T_RF_1_2 = translation(0, 0, 0.039) @ rotation_y(-1.57080) @ rotation_z(theta[1])
         T_RF_2_3 = translation(0, -0.04940, 0.06850) @ rotation_y(1.57080) @ rotation_z(theta[2])
         T_RF_3_ee = translation(0.06231, -0.06216, 0.01800)
         T_RF_0_ee = T_RF_0_1 @ T_RF_1_2 @ T_RF_2_3 @ T_RF_3_ee
@@ -208,9 +207,9 @@ class InverseKinematics(Node):
         ################################################################################################
         # Already implemented in Lab 2
         T_RF_0_1 = translation(-0.07500, 0.0335, 0) @ rotation_x(-1.57080) @ rotation_z(theta[0])
-        T_RF_1_2 = translation(0,0,0.039) @ rotation_y(-1.57080) @ rotation_z(theta[1])
-        T_RF_2_3 = translation(0, -0.04940, 0.06850) @ rotation_y(1.57080) @ rotation_z(theta[2])
-        T_RF_3_ee = translation(0.06231, -0.06216, 0.01800)
+        T_RF_1_2 = translation(0, 0, 0.039) @ rotation_y(-1.57080) @ rotation_z(theta[1])
+        T_RF_2_3 = translation(0, 0.04940, 0.06850) @ rotation_y(1.57080) @ rotation_z(theta[2])
+        T_RF_3_ee = translation(0.06231, 0.06216, 0.01800)
         T_RF_0_ee = T_RF_0_1 @ T_RF_1_2 @ T_RF_2_3 @ T_RF_3_ee
         return T_RF_0_ee[:3, 3]
 
@@ -276,6 +275,7 @@ class InverseKinematics(Node):
 
     def interpolate_leg(self, triangle_positions, t):
         target = 0
+        t*=6
         if t % 6.0 < 1:
             target = triangle_positions[0] + (t % 1.0) * (triangle_positions[1] - triangle_positions[0])
         elif t % 6.0 < 2:
@@ -301,8 +301,7 @@ class InverseKinematics(Node):
             target_joint_positions_cache.append([])
             target_ee_cache.append([])
             target_joint_positions = [0] * 3
-            for t in np.arange(0, 1, 0.02):
-                print(t)
+            for t in np.arange(0, 1, 0.01):
                 target_ee = self.interpolate_triangle(t, leg_index)
                 target_joint_positions = self.inverse_kinematics_single_leg(target_ee, leg_index, initial_guess=target_joint_positions)
 
