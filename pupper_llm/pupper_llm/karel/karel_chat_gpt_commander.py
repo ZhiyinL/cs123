@@ -4,8 +4,8 @@ from std_msgs.msg import String
 import pyttsx3
 from openai import OpenAI
 import karel  # Importing your KarelPupper API
-from .. import constant.GPT4_PROMPT as GPT4_PROMPT
-from .. import constant.API_KEY as API_KEY
+from ..constants import GPT4_PROMPT
+from ..constants import API_KEY
 
 client = OpenAI(api_key=API_KEY)  # Set your OpenAI API key here
 

@@ -24,8 +24,8 @@ import time
 import prompt_utils
 import json
 
-from .. import constant.GPT4_PROMPT as GPT4_PROMPT
-from .. import constant.API_KEY as API_KEY
+from ..constants import GPT4_PROMPT
+from ..constants import API_KEY
 
 GPT_MODEL = "gpt-4o"
 client = OpenAI(api_key = API_KEY)

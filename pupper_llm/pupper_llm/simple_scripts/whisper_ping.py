@@ -3,8 +3,8 @@ from rclpy.node import Node
 from std_msgs.msg import String
 import sounddevice as sd
 from openai import OpenAI
-from .. import constant.GPT4_PROMPT as GPT4_PROMPT
-from .. import constant.API_KEY as API_KEY
+from ..constants import GPT4_PROMPT
+from ..constants import API_KEY
 
 client = OpenAI(api_key=API_KEY)
 import numpy as np
