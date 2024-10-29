@@ -5,7 +5,7 @@ import pyttsx3
 from openai import OpenAI
 import karel  # Importing your KarelPupper API
 
-client = OpenAI(api_key='TODO')  # Set your OpenAI API key here
+client = OpenAI(api_key='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')  # Set your OpenAI API key here
 
 class GPT4ConversationNode(Node):
     def __init__(self):
@@ -38,8 +38,19 @@ class GPT4ConversationNode(Node):
     # TODO: Implement the query_callback method
     # msg is a String message object that contains the user query. You can extract the query using msg.data
     def query_callback(self, msg):
-        pass
         # Paste in your implementation from simple_gpt_chat.py
+
+        # Extract the user query from the message using the data attribute of message
+        user_query = msg.data
+        # Call GPT-4 API to get the response. Use the get_gpt4_response method and pass in the query
+        gpt4_response = self.get_gpt4_response(user_query)
+    
+        # Publish the response (as the data to a String message) using self.publisher_ and its publish method, 
+        response = String()
+        response.data = gpt4_response
+
+        # Publish the response to the ROS2 topic
+        self.publisher_.publish(response)
         
         # Play the response through the speaker with the play_response method
         self.play_response(response)
@@ -49,7 +60,7 @@ class GPT4ConversationNode(Node):
     def get_gpt4_response(self, query):
         try:
             # Making the API call to GPT-4 using OpenAI's Python client
-            prompt = "TODO"
+            prompt = "I am a robotic dog" # TODO
             response = client.chat.completions.create(model="gpt-4",  # Model identifier, assuming GPT-4 is used
             messages=[
                 {"role": "system", "content": prompt},
