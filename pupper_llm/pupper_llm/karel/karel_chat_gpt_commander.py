@@ -4,8 +4,10 @@ from std_msgs.msg import String
 import pyttsx3
 from openai import OpenAI
 import karel  # Importing your KarelPupper API
+from .. import constant.GPT4_PROMPT as GPT4_PROMPT
+from .. import constant.API_KEY as API_KEY
 
-client = OpenAI(api_key='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')  # Set your OpenAI API key here
+client = OpenAI(api_key=API_KEY)  # Set your OpenAI API key here
 
 class GPT4ConversationNode(Node):
     def __init__(self):
@@ -60,7 +62,7 @@ class GPT4ConversationNode(Node):
     def get_gpt4_response(self, query):
         try:
             # Making the API call to GPT-4 using OpenAI's Python client
-            prompt = "I am a robotic dog" # TODO
+            prompt = GPT4_PROMPT # TODO
             response = client.chat.completions.create(model="gpt-4",  # Model identifier, assuming GPT-4 is used
             messages=[
                 {"role": "system", "content": prompt},
@@ -89,7 +91,17 @@ class GPT4ConversationNode(Node):
         response = response.lower()
         self.get_logger().info(f"Response: {response}")
         # TODO: Implement the robot command execution logic, in a large if-else statement. Your conditionals should be set based on the expected commands from GPT-4, and the corresponding methods should be called on the KarelPupper object.
-        pass
+        if "move" in response:
+            self.pupper.move()
+        elif "left" in response:
+            self.pupper.turn_left()
+        elif "right" in response:
+            self.pupper.turn_right()
+        elif "bark" in response:
+            for _ in range(5):
+                self.pupper.bark()
+        elif "stop" in response:
+            self.pupper.stop()
 
 def main(args=None):
     rclpy.init(args=args)
