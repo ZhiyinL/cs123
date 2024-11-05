@@ -44,12 +44,12 @@ class GPT4ConversationNode(Node):
     # msg is a String message object that contains the user query. You can extract the query using msg.data
     def query_callback(self, msg):
         # Paste in your implementation from simple_gpt_chat.py
-
+        self.get_logger().info("got message:", msg.data)
         # Extract the user query from the message using the data attribute of message
         user_query = msg.data
         # Call GPT-4 API to get the response. Use the get_gpt4_response method and pass in the query
         gpt4_response = self.get_gpt4_response(user_query)
-    
+        self.get_logger().info("got gpt4 response:", gpt4_response)
         # Publish the response (as the data to a String message) using self.publisher_ and its publish method, 
         response = String()
         response.data = gpt4_response
@@ -96,15 +96,20 @@ class GPT4ConversationNode(Node):
         # TODO: Implement the robot command execution logic, in a large if-else statement. Your conditionals should be set based on the expected commands from GPT-4, and the corresponding methods should be called on the KarelPupper object.
         if "move" in response:
             self.pupper.move()
+            print("moving\n")
         elif "left" in response:
             self.pupper.turn_left()
+            print("left\n")
         elif "right" in response:
             self.pupper.turn_right()
+            print("right\n")
         elif "bark" in response:
+            print("bark\n")
             for _ in range(5):
                 self.pupper.bark()
         elif "stop" in response:
             self.pupper.stop()
+            print("stop\n")
 
 def main(args=None):
     rclpy.init(args=args)
