@@ -3,9 +3,11 @@ from rclpy.node import Node
 from std_msgs.msg import String
 import sounddevice as sd
 from openai import OpenAI
-from ..constants import GPT4_PROMPT
-from ..constants import API_KEY
-
+GPT4_PROMPT = "I am a robotic dog. I have the following APIs to call: \
+               'turn_left', 'turn_right', 'move', 'stop', 'bark'. \
+               Please call one of the APIs based on the input. \
+               For example, if you receive 'go_left', please output 'turn_left'. "
+API_KEY = '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'
 client = OpenAI(api_key=API_KEY)
 import numpy as np
 import time
@@ -84,7 +86,9 @@ def main(args=None):
         audio_data = record_audio(duration=5.0)
         # Save the recorded audio to a WAV file
         wav_io = audio_to_wav(audio_data)
-        filename = '/home/pi/pupper_llm/pupper_llm/simple_scripts/test_audio.wav'
+        # filename = '/home/pi/pupper_llm/pupper_llm/simple_scripts/test_audio.wav'
+        filename = '/home/pi/Desktop/cs123/pupper_llm/pupper_llm/simple_scripts/test_audio.wav'
+
         with open(filename, 'wb') as f:
             f.write(wav_io.read())
         command_publisher.get_logger().info("Audio saved to test_audio.wav")

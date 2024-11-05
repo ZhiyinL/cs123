@@ -24,9 +24,11 @@ import time
 import prompt_utils
 import json
 
-from ..constants import GPT4_PROMPT
-from ..constants import API_KEY
-
+GPT4_PROMPT = "I am a robotic dog. I have the following APIs to call: \
+               'turn_left', 'turn_right', 'move', 'stop', 'bark'. \
+               Please call one of the APIs based on the input. \
+               For example, if you receive 'go_left', please output 'turn_left'. "
+API_KEY = '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'
 GPT_MODEL = "gpt-4o"
 client = OpenAI(api_key = API_KEY)
 resampler = sr.Resampler()

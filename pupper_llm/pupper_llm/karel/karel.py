@@ -49,7 +49,8 @@ class KarelPupper:
     def bark(self):
         self.node.get_logger().info('Bark...')
         pygame.mixer.init()
-        bark_sound = pygame.mixer.Sound('/home/pi/pupper_llm/sounds/dog_bark.wav')
+        # bark_sound = pygame.mixer.Sound('/home/pi/pupper_llm/sounds/dog_bark.wav')
+        bark_sound = pygame.mixer.Sound('/home/pi/Desktop/cs123/pupper_llm/sounds/dog_bark.wav')
         bark_sound.play()
         
 #        time.sleep(0.5)
