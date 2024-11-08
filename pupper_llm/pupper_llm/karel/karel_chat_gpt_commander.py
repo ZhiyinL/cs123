@@ -4,10 +4,14 @@ from std_msgs.msg import String
 import pyttsx3
 from openai import OpenAI
 import karel  # Importing your KarelPupper API
-GPT4_PROMPT = "I am a robotic dog. I have the following APIs to call: \
-               'turn_left', 'turn_right', 'move', 'stop', 'bark'. \
-               Please call one of the APIs based on the input. \
-               For example, if you receive 'go_left', please output 'turn_left'. "
+GPT4_PROMPT = "Pretend that you are translating from human commander to Pupper V3 action sequences, a robotic AI-powered dog being constructed in Stanford’s CS123 lab. You have the following commands available in our Pupper API: [ MOVE, TURN_LEFT, TURN_RIGHT, BARK ]. MOVE moves the robot forward, in the direction it is currently facing, by about 5 feet. TURN_LEFT turns Pupper to the left by roughly 120deg. The same for TURN_RIGHT, but the other way. BARK causes Pupper to play an audio of a dog barking. No actions can be taken simultaneously.\
+For the rest of this conversation, you are PupperV3. Please respond to all of the following requests using only a list of Pupper API commands, as if you were the physical manifestation of the robot. I must reiterate, you can ONLY respond using the provided API commands.\
+Example output: 'TURN_LEFT,TURN_LEFT,BARK'\
+Thank you for your help!"
+# GPT4_PROMPT = "I am a robotic dog. I have the following APIs to call: \
+#                'turn_left', 'turn_right', 'move', 'stop', 'bark'. \
+#                Please call one of the APIs based on the input. \
+#                For example, if you receive 'go_left', please output 'turn_left'. "
 API_KEY = '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'
 
 client = OpenAI(api_key=API_KEY)  # Set your OpenAI API key here
@@ -44,12 +48,13 @@ class GPT4ConversationNode(Node):
     # msg is a String message object that contains the user query. You can extract the query using msg.data
     def query_callback(self, msg):
         # Paste in your implementation from simple_gpt_chat.py
-        self.get_logger().info("got message:", msg.data)
         # Extract the user query from the message using the data attribute of message
         user_query = msg.data
         # Call GPT-4 API to get the response. Use the get_gpt4_response method and pass in the query
         gpt4_response = self.get_gpt4_response(user_query)
-        self.get_logger().info("got gpt4 response:", gpt4_response)
+        print(
+            f"gpt4 response {gpt4_response}"
+        )
         # Publish the response (as the data to a String message) using self.publisher_ and its publish method, 
         response = String()
         response.data = gpt4_response
@@ -91,25 +96,22 @@ class GPT4ConversationNode(Node):
 
     def execute_robot_command(self, response):
         # Convert the response to lowercase to handle case-insensitivity
-        response = response.lower()
-        self.get_logger().info(f"Response: {response}")
+        response = response.data.lower()
+        action_list = response.split(",")
         # TODO: Implement the robot command execution logic, in a large if-else statement. Your conditionals should be set based on the expected commands from GPT-4, and the corresponding methods should be called on the KarelPupper object.
-        if "move" in response:
-            self.pupper.move()
-            print("moving\n")
-        elif "left" in response:
-            self.pupper.turn_left()
-            print("left\n")
-        elif "right" in response:
-            self.pupper.turn_right()
-            print("right\n")
-        elif "bark" in response:
-            print("bark\n")
-            for _ in range(5):
+        for action in action_list:
+
+            if "move" in action:
+                self.pupper.move()
+            elif "left" in action:
+                self.pupper.turn_left()
+            elif "right" in action:
+                self.pupper.turn_right()
+            elif "bark" in action:
                 self.pupper.bark()
-        elif "stop" in response:
-            self.pupper.stop()
-            print("stop\n")
+            else:
+                pass # Do nothing for inproper action
+
 
 def main(args=None):
     rclpy.init(args=args)
