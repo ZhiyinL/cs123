@@ -4,6 +4,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from vision_msgs.msg import Detection2DArray
 import numpy as np
+import time
 
 IMAGE_WIDTH = 1400
 
@@ -40,12 +41,28 @@ class StateMachineNode(Node):
 
         # TODO: Add your new member variables here
         self.kp = pass # TODO
+        self.latest_ts = 0
 
     def detection_callback(self, msg):
         """
         Determine which of the HAILO detections is the most central detected object
         """
-        pass # TODO: Part 1
+        
+        # Part 1.3, 1.5: Find the most central detection
+        if msg.detections:
+            normalized_x_positions = [
+                (detection.bbox.center.x - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2)
+                for detection in msg.detections
+            ]
+            most_central_index = np.argmin(np.abs(normalized_x_positions))
+            self.target_x = normalized_x_positions[most_central_index]
+
+        # part 1.4 print x coordinate
+        for i, x_pos in enumerate(normalized_x_positions):
+            print(f"coordinate x_{i} normalized ", x_pos)
+
+        # Update time of last detection
+        self.latest_ts = time.time()
 
     def timer_callback(self):
         """
