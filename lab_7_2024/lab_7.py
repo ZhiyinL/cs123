@@ -10,10 +10,10 @@ IMAGE_WIDTH = 1400
 
 # TODO: Add your new constants here
 
-TIMEOUT = 5.0 #TODO threshold in timer_callback
+TIMEOUT = 2.0 #TODO threshold in timer_callback
 SEARCH_YAW_VEL = 1.0 #TODO searching constant
-TRACK_FORWARD_VEL = 1.0 #TODO tracking constant
-KP = 0.1 #TODO proportional gain for tracking
+TRACK_FORWARD_VEL = 0.5 #TODO tracking constant
+KP = 0.5 #TODO proportional gain for tracking
 
 class State(Enum):
     SEARCH = 0
@@ -42,6 +42,7 @@ class StateMachineNode(Node):
         # TODO: Add your new member variables here
         self.kp = KP 
         self.latest_ts = 0
+        self.target_x = 0
 
     def detection_callback(self, msg):
         """
@@ -51,18 +52,18 @@ class StateMachineNode(Node):
         # Part 1.3, 1.5: Find the most central detection
         if msg.detections:
             normalized_x_positions = [
-                (detection.bbox.center.x - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2)
+                (detection.bbox.center.position.x - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2)
                 for detection in msg.detections
             ]
             most_central_index = np.argmin(np.abs(normalized_x_positions))
             self.target_x = normalized_x_positions[most_central_index]
 
-        # part 1.4 print x coordinate
-        for i, x_pos in enumerate(normalized_x_positions):
-            print(f"coordinate x_{i} normalized ", x_pos)
+            # part 1.4 print x coordinate
+            for i, x_pos in enumerate(normalized_x_positions):
+                print(f"coordinate x_{i} normalized ", x_pos)
 
-        # Update time of last detection
-        self.latest_ts = time.time()
+            # Update time of last detection
+            self.latest_ts = time.time()
 
     def timer_callback(self):
         """
