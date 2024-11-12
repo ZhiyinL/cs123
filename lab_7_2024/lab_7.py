@@ -10,10 +10,10 @@ IMAGE_WIDTH = 1400
 
 # TODO: Add your new constants here
 
-TIMEOUT = pass #TODO threshold in timer_callback
-SEARCH_YAW_VEL = pass #TODO searching constant
-TRACK_FORWARD_VEL = pass #TODO tracking constant
-KP = pass #TODO proportional gain for tracking
+TIMEOUT = 5.0 #TODO threshold in timer_callback
+SEARCH_YAW_VEL = 1.0 #TODO searching constant
+TRACK_FORWARD_VEL = 1.0 #TODO tracking constant
+KP = 0.1 #TODO proportional gain for tracking
 
 class State(Enum):
     SEARCH = 0
@@ -40,7 +40,7 @@ class StateMachineNode(Node):
         self.state = State.TRACK
 
         # TODO: Add your new member variables here
-        self.kp = pass # TODO
+        self.kp = KP 
         self.latest_ts = 0
 
     def detection_callback(self, msg):
@@ -68,19 +68,23 @@ class StateMachineNode(Node):
         """
         Implement a timer callback that sets the moves through the state machine based on if the time since the last detection is above a threshold TIMEOUT
         """
-        
-        if False: # TODO: Part 3.2
+        dt = time.time() - self.latest_ts
+        if dt > TIMEOUT: # TODO: Part 3.2
             self.state = State.SEARCH
         else:
             self.state = State.TRACK
-
+        
         yaw_command = 0.0
         forward_vel_command = 0.0
 
         if self.state == State.SEARCH:
-            pass # TODO: Part 3.1
+            # TODO: Part 3.1
+            yaw_command = SEARCH_YAW_VEL * (-1 if self.target_x > 0 else 1)
+            
         elif self.state == State.TRACK:
-            pass # TODO: Part 2 / 3.4
+            # TODO: Part 2 / 3.4
+            yaw_command = -self.kp*self.target_x # USE CONSTANT IN PT3
+            forward_vel_command = TRACK_FORWARD_VEL
 
         cmd = Twist()
         cmd.angular.z = yaw_command
