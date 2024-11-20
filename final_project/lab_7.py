@@ -25,23 +25,16 @@ class StateMachineNode(Node):
     def __init__(self):
         super().__init__('state_machine_node')
 
-        self.detection_subscription = self.create_subscription(
-            Detection2DArray,
-            '/detections',
-            self.detection_callback,
-            10
-        )
-
         self.command_publisher = self.create_publisher(
             Twist,
             'cmd_vel',
             10
         )
 
-        self.annotation_subscription = self.create_subscription(
+        self.img_subscription = self.create_subscription(
             CompressedImage,
-            '/annotated_images', # todo: check path 
-            self.annotation_callback,
+            '/image',
+            self.image_callback,
             10
         )
 
@@ -54,9 +47,12 @@ class StateMachineNode(Node):
         self.target_x = 0
         self.image = None # most up-to-date image
 
-    def annotation_callback(self, msg):
+    def image_callback(self, msg):
         image = msg.data # todo: check ros2 msg
         self.image = image
+        print("IMAGE CALLBACK")
+        print(self.image)
+        print(self.image.shape)
 
     def check_search_to_align(self):
         pass
