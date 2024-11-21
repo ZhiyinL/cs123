@@ -41,11 +41,14 @@ class HailoDetectionNode(Node):
         self.label_annotator = sv.LabelAnnotator()
         self.tracker = sv.ByteTrack()
 
+        # Log completion of Node
+        self.get_logger().info("ImageProcessorNode is up and running!")
+
     def image_callback(self, msg):
-        print("THIS GOT CALLED")
+        self.get_logger.info("THIS GOT CALLED")
         # Convert ROS Image to CV2
         frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        video_h, video_w = frame.shape[:2]
+        frame_h, frame_w = frame.shape[:2]
 
         # Rotate 180 degrees
         frame = cv2.rotate(frame, cv2.ROTATE_180)
@@ -61,7 +64,7 @@ class HailoDetectionNode(Node):
         # Publish to downstream
         self.image_pub.publish(compressed_img)
 
-    def find_color_clusters(self, frame : numpy.ndarray, target_color : tuple, tolerance : int, min_cluster_size : int) -> list :
+    def find_color_clusters(self, frame : np.ndarray, target_color : tuple, tolerance : int, min_cluster_size : int) -> list :
         """
         Return a list of coordinates (relative to the shape of the frame) to matching color clusters on the image.
         """
@@ -85,6 +88,15 @@ class HailoDetectionNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = HailoDetectionNode()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down HailoDetectionNode...")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
