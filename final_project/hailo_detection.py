@@ -36,54 +36,31 @@ class HailoDetectionNode(Node):
         self.image_pub = self.create_publisher(CompressedImage, '/image', 10) #THIS SENDS IMG TO MAIN
         self.image_sub = self.create_subscription(Image, '/camera/image_raw', self.image_callback, 10) #WAIT FOR IMAGE
 
-        # Initialize tracking and annotation (remove if not needed)
-        self.box_annotator = sv.RoundBoxAnnotator()
-        self.label_annotator = sv.LabelAnnotator()
-        self.tracker = sv.ByteTrack()
-
         # Log completion of Node
         self.get_logger().info("ImageProcessorNode is up and running!")
 
     def image_callback(self, msg):
-        self.get_logger.info("THIS GOT CALLED")
         # Convert ROS Image to CV2
         frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        frame_h, frame_w = frame.shape[:2]
 
         # Rotate 180 degrees
         frame = cv2.rotate(frame, cv2.ROTATE_180)
 
-        # TODO: Do preprocessing on 'frame' here as needed
+        # Swap r and b channels, then multiply r by 0.5 to fix the colors
+        frame = frame[:, :, ::-1]
+        frame[:, :, 0] = frame[:, :, 0] * 0.5
+
+        # TODO: optionally, preprocess frame to crop the frame to desired size
 
         # Compress image into expected jpeg form
         _, jpg_buffer = cv2.imencode('.jpg', frame)
         compressed_img = CompressedImage()
+        compressed_img.header = msg.header
         compressed_img.format = "jpeg"
         compressed_img.data = jpg_buffer.tobytes()
 
-        # Publish to downstream
+        # Publish RGB image
         self.image_pub.publish(compressed_img)
-
-    def find_color_clusters(self, frame : np.ndarray, target_color : tuple, tolerance : int, min_cluster_size : int) -> list :
-        """
-        Return a list of coordinates (relative to the shape of the frame) to matching color clusters on the image.
-        """
-        # Color mask to filter out non-target colors (either yellow ball or pink net)
-        target_color_array = np.array(target_color)
-        lower_bound = np.clip(target_color_array - tolerance, 0, 255)
-        upper_bound = np.clip(target_color_array + tolerance, 0, 255)
-        mask = np.all((frame >= lower_bound) & (frame <= upper_bound), axis=2)
-
-        # Get coordinates of matching pixels
-        y_coords, x_coords = np.where(mask)
-        if len(x_coords) == 0:
-            return []
-        coords = np.column_stack((x_coords, y_coords))
-
-        # Perform clustering with some algorithm TODO
-        return []
-        
-
 
 def main(args=None):
     rclpy.init(args=args)
