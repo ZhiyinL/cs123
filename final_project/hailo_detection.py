@@ -45,10 +45,11 @@ class HailoDetectionNode(Node):
 
         # Rotate 180 degrees
         frame = cv2.rotate(frame, cv2.ROTATE_180)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # # Swap r and b channels, then multiply r by 0.5 to fix the colors
-        # frame = frame[:, :, ::-1]
-        # frame[:, :, 0] = frame[:, :, 0] * 0.5
+        frame = frame[:, :, ::-1]
+        frame[:, :, 0] = frame[:, :, 0] * 0.5
 
         # TODO: optionally, preprocess frame to crop the frame to desired size
 
