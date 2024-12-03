@@ -19,12 +19,12 @@ def detect_ball(image):
     # Apply the circular mask to the image
     masked_image = cv2.bitwise_and(hsv_image, hsv_image, mask=mask_roi)
 
-    # Define the yellow color range in HSV
-    lower_yellow = np.array([15, 180, 200])  # Adjust based on lighting
+    # Define the yellow color range in HSV (we need to tune for ball)
+    lower_yellow = np.array([15, 180, 200])
     upper_yellow = np.array([30, 255, 255])
 
     # Create a binary mask for yellow color
-    mask_yellow = cv2.inRange(cv2.bitwise_and(hsv_image, hsv_image, mask=mask_roi), lower_yellow, upper_yellow)
+    mask_yellow = cv2.inRange(masked_image, lower_yellow, upper_yellow)
 
     cv2.imwrite('./images/Yellow Mask.jpg', mask_yellow)
 

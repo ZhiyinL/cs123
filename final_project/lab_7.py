@@ -4,6 +4,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from vision_msgs.msg import Detection2DArray
 from sensor_msgs.msg import CompressedImage
+from detect import detect_ball
 import numpy as np
 import time
 import cv2
@@ -66,7 +67,7 @@ class StateMachineNode(Node):
         self.yellow_exist, self.yellow_coord = self.detect_color(YELLOW)
         self.normalized_ball_x = (self.yellow_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.yellow_exist else None
         self.normalized_net_x = (self.pink_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.pink_exist else None
-        print(self.image[self.image.shape[0] // 2, self.image.shape[1] // 2])
+        print("BGR:", self.image[self.image.shape[0] // 2, self.image.shape[1] // 2])
         print("Yellow Status: ", self.yellow_exist)
         print("Pink Status: ", self.pink_exist)
 
@@ -76,6 +77,11 @@ class StateMachineNode(Node):
         and the median coordinates of the color of interest.
         """
         assert(self.image.shape[2] == 3) # RGB channels only, should equal to 3
+
+        if color == YELLOW:
+            # Use detect_ball instead
+            yellow_exists, yellow_coords, ball_radius = detect_ball(self.image)
+            return yellow_exists, yellow_coords
 
         # Ensure the target color is a NumPy array
         color_bgr = np.array(color, dtype=np.uint8)  # Ensure the color is an array
