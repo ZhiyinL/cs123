@@ -20,8 +20,8 @@ KP = 0.5 #TODO proportional gain for tracking
 AREA_THRESHOLD = 1        
 
 # Other hyperparameters
-YELLOW = (0, 150, 255)
-PINK = (231, 120, 131)
+YELLOW = np.array([130, 150, 200])
+PINK = np.array([231, 120, 131])
 IMAGE_WIDTH = 1400
 
 class State(Enum):
@@ -66,25 +66,67 @@ class StateMachineNode(Node):
         self.yellow_exist, self.yellow_coord = self.detect_color(YELLOW)
         self.normalized_ball_x = (self.yellow_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.yellow_exist else None
         self.normalized_net_x = (self.pink_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.pink_exist else None
-        print(self.image[self.image.shape[0] // 2, self.image.shape[1] // 2])
         print("Yellow Status: ", self.yellow_exist)
         print("Pink Status: ", self.pink_exist)
 
-    def detect_color(self, color, tol=50, save_folder="./images"):
+    def detect_ball(self, save_folder):
+        hsv_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
+
+        lower_yellow = np.array([20, 100, 100])
+        upper_yellow = np.array([30, 255, 255])
+        mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        largest_blob = None
+        max_area = 0
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            perimeter = cv2.arcLength(contour, True)
+            if perimeter == 0:
+                continue
+            circularity = 4 * np.pi * (area / perimeter**2)
+            if circularity > 0.6 and area > max_area:
+                largest_blob = contour
+                max_area = area
+        if largest_blob is not None:
+            (x, y), radius = cv2.minEnclosingCircle(largest_blob)
+            center = (int(x), int(y))
+            radius = int(radius)
+            cv2.circle(self.image, center, radius, (0, 255, 0), 2)
+        cv2.imshow('Detected Largest Blob', self.image)
+        cv2.imshow('Mask', mask)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+
+    def detect_color(self, color, tol=150, save_folder="./images"):
         """
         Return whether in current image the color of interest exists
         and the median coordinates of the color of interest.
         """
         assert(self.image.shape[2] == 3) # RGB channels only, should equal to 3
 
+
+        save_path = os.path.join(save_folder, "blob_detected.jpg")
+        h_path = os.path.join(save_folder, 'r_channel.jpg')
+        s_path = os.path.join(save_folder, 'g_channel.jpg')
+        v_path = os.path.join(save_folder, 'b_channel.jpg')
+        h_channel, s_channel, v_channel = cv2.split(self.image)
+
+        cv2.imwrite(h_path, h_channel)
+        cv2.imwrite(s_path, s_channel)
+        cv2.imwrite(v_path, v_channel)
+        cv2.imwrite(save_path, self.image)
         # Ensure the target color is a NumPy array
-        color_bgr = np.array(color, dtype=np.uint8)  # Ensure the color is an array
-        color_bgr = color_bgr.reshape(1, 1, 3)  # Reshape to 1x1 image (BGR format)
-        color_hsv = cv2.cvtColor(color_bgr, cv2.COLOR_BGR2HSV)[0][0]  # Convert to HSV
         
         # Define lower and upper bounds for the color range
-        lower_bound = np.clip(color_hsv - tol, 0, 255)
-        upper_bound = np.clip(color_hsv + tol, 0, 255)
+        lower_bound = np.clip(color - tol, 0, 255)
+        upper_bound = np.clip(color + tol, 0, 255)
 
         # Create a mask for pixels within the color range
         mask = cv2.inRange(self.image, lower_bound, upper_bound)
