@@ -76,7 +76,9 @@ class StateMachineNode(Node):
         '''
         We switch state 'ALIGN' to 'SHOOT' when we are in target position to shoot.
         '''
-        return np.abs(self.yellow_coord[0]) <= IMAGE_WIDTH * SHOOT_THRESHOLD
+        if self.normalized_ball_x == None:
+            return False
+        return np.abs(self.normalized_ball_x) <= 0.1
 
     def timer_callback(self):
         """
@@ -106,7 +108,7 @@ class StateMachineNode(Node):
             '''
             rotate towards last time we've seen the ball
             '''
-            if not self.normalized_ball_x: 
+            if self.normalized_ball_x == None: 
                 yaw_command = SEARCH_YAW_VEL * 1
             else:
                 yaw_command = SEARCH_YAW_VEL * (-1 if self.normalized_ball_x > 0 else 1) 

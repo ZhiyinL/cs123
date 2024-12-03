@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
 
+createImage = True
+
 def detect_ball(image):
     # Convert the image from BGR to HSV
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    cv2.imshow('hsv_image', hsv_image)
+    cv2.imwrite('./images/hsv_image.jpg', hsv_image)
 
     # Create a mask for the circular region of interest (ROI)
     height, width = image.shape[:2]
@@ -24,7 +26,7 @@ def detect_ball(image):
     # Create a binary mask for yellow color
     mask_yellow = cv2.inRange(cv2.bitwise_and(hsv_image, hsv_image, mask=mask_roi), lower_yellow, upper_yellow)
 
-    cv2.imshow('Yellow Mask', mask_yellow)
+    cv2.imwrite('./images/Yellow Mask.jpg', mask_yellow)
 
     # Find contours in the yellow mask
     contours, _ = cv2.findContours(mask_yellow, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -34,7 +36,6 @@ def detect_ball(image):
     max_area = 0
 
     for contour in contours:
-        print("HI")
         # Calculate the area and perimeter of the contour
         area = cv2.contourArea(contour)
         perimeter = cv2.arcLength(contour, True)
@@ -44,7 +45,6 @@ def detect_ball(image):
 
         # Check for circularity and size
         if circularity > 0.5 and area > max_area:  # Adjust thresholds as needed
-            print("hello")
             largest_blob = contour
             max_area = area
 
@@ -56,9 +56,9 @@ def detect_ball(image):
 
         # Draw the circle on the original image
         cv2.circle(image, center, radius, (0, 255, 0), 2)
+        cv2.imwrite('./images/Masked Image.jpg', masked_image)
+        cv2.imwrite('./images/Detected Largest Blob.jpg', image)
+        
         return True, center, radius
     return False, None, None
     # # Display the results
-    # cv2.imshow('Masked Image', masked_image)
-    # cv2.imshow('Detected Largest Blob', image)
-    # cv2.waitKey(0)
