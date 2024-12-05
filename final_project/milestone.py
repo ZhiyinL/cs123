@@ -14,15 +14,13 @@ import os
 SHOOT_THRESHOLD = 0.05 # Within this percentage of image width for the difference between ball and net horizontal center, we shoot
 
 # Control hyperparameters
-SEARCH_YAW_VEL = 1.0 #TODO searching constant
+SEARCH_YAW_VEL = 0.75 #TODO searching constant
 TRACK_FORWARD_VEL = 0.3 #TODO tracking x-axis constant
 TRACK_HORIZONTAL_VEL = 0.1 #TODO tracking y-axis constant
 KP = 0.5 #TODO proportional gain for tracking
 AREA_THRESHOLD = 1        
 
 # Other hyperparameters
-YELLOW = (0, 150, 255)
-PINK = (231, 120, 131)
 IMAGE_WIDTH = 1400
 
 class State(Enum):
@@ -63,25 +61,10 @@ class StateMachineNode(Node):
         # update image related features here
         self.yellow_exist, self.yellow_coord, self.yellow_radius = detect_ball(self.image) # TODO: check if jonah's return is normalized
         self.normalized_ball_x = (self.yellow_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.yellow_exist else None
-        print(self.image[self.image.shape[0] // 2, self.image.shape[1] // 2])
         print("Yellow Status: ", self.yellow_exist)
+        print(self.normalized_ball_x)
     
-    def check_revert_to_search(self):
         return not self.yellow_exist
-
-    def check_search_to_align(self):
-        '''
-        We switch state 'SEARCH' to 'ALIGN' when we see both ball and net.
-        '''
-        return self.yellow_exist
-
-    def check_align_to_shoot(self):
-        '''
-        We switch state 'ALIGN' to 'SHOOT' when we are in target position to shoot.
-        '''
-        if self.normalized_ball_x == None:
-            return False
-        return np.abs(self.normalized_ball_x) <= 0.1
 
     def timer_callback(self):
         """
@@ -94,15 +77,17 @@ class StateMachineNode(Node):
         """
         
         # Step 1. State Transition
-        if self.state != State.SEARCH and self.check_revert_to_search():
+        if not self.yellow_exist:
             print("revert to search!")
             self.state = State.SEARCH
-        elif self.state == State.SEARCH and self.check_search_to_align():
+        elif np.abs(self.normalized_ball_x) >= 0.1 and np.abs(self.normalized_ball_x) <= 0.5:
             print("switching to align!")
             self.state = State.ALIGN
-        elif self.state == State.ALIGN and self.check_align_to_shoot():
+        elif np.abs(self.normalized_ball_x) < 0.1:
             print("switching to shoot!")
             self.state = State.SHOOT
+        else:
+            self.state = State.SEARCH
         
 
         print(self.state)
@@ -115,7 +100,7 @@ class StateMachineNode(Node):
             '''
             rotate towards last time we've seen the ball
             '''
-            if self.normalized_ball_x == None: 
+            if self.normalized_ball_x is None: 
                 yaw_command = SEARCH_YAW_VEL * 1
             else:
                 yaw_command = SEARCH_YAW_VEL * (-1 if self.normalized_ball_x > 0 else 1) 
@@ -123,14 +108,14 @@ class StateMachineNode(Node):
             '''
             consider move away from ball on x axis (forward / backward) and move towards the ball on y axis (horizontal)
             '''
-            if self.normalized_ball_x != None:
+            if not self.normalized_ball_x is None:
                 forward_vel_command = -TRACK_FORWARD_VEL * 0.2
                 horizontal_vel_command = TRACK_HORIZONTAL_VEL * (-1 if self.normalized_ball_x > 0 else 1) 
         elif self.state == State.SHOOT:
             '''
             shoot! assuming we have pupper face ball as well as the net farther away
             '''
-            if self.normalized_ball_x != None:
+            if not self.normalized_ball_x is None:
                 forward_vel_command = TRACK_FORWARD_VEL
                 horizontal_vel_command = TRACK_HORIZONTAL_VEL * (-1 if self.normalized_ball_x > 0 else 1) 
 

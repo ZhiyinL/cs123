@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 createImage = True
+MIN_AREA = 100
 
 def detect_ball(image):
     # Convert the image from BGR to HSV
@@ -16,6 +17,11 @@ def detect_ball(image):
     mask_roi = np.zeros((height, width), dtype=np.uint8)
     cv2.circle(mask_roi, center, radius - 10, 255, thickness=-1)  # Adjust the radius
 
+    bottom_3_4_mask = np.zeros((height, width), dtype=np.uint8)
+    bottom_3_4_mask[int(height * 1/4):, :] = 255
+
+    mask_roi = cv2.bitwise_and(mask_roi, bottom_3_4_mask)
+    
     # Apply the circular mask to the image
     masked_image = cv2.bitwise_and(hsv_image, hsv_image, mask=mask_roi)
 
@@ -44,7 +50,7 @@ def detect_ball(image):
         circularity = 4 * np.pi * (area / (perimeter ** 2))
 
         # Check for circularity and size
-        if circularity > 0.5 and area > max_area:  # Adjust thresholds as needed
+        if circularity > 0.3 and area > max_area and area > MIN_AREA:  # Adjust thresholds as needed
             largest_blob = contour
             max_area = area
 
