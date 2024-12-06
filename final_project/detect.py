@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 
-createImage = True
-MIN_AREA = 100
-
 def detect_ball(image):
+    MIN_AREA = 100
+
     # Convert the image from BGR to HSV
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     cv2.imwrite('./images/hsv_image.jpg', hsv_image)
@@ -62,9 +61,53 @@ def detect_ball(image):
 
         # Draw the circle on the original image
         cv2.circle(image, center, radius, (0, 255, 0), 2)
-        cv2.imwrite('./images/Masked Image.jpg', masked_image)
-        cv2.imwrite('./images/Detected Largest Blob.jpg', image)
+        cv2.imwrite('./images/yellow Masked Image.jpg', masked_image)
+  
+        cv2.imwrite('./images/Detected Largest yellow Blob.jpg', image)
         
         return True, center, radius
     return False, None, None
     # # Display the results
+
+
+def detect_net(image):
+    """
+    Detects pink regions in the image and marks the median position of all selected pixels.
+
+    Parameters:
+    - image: Input BGR image.
+
+    Returns:
+    - True if pink is detected, and the marked image.
+    - None if no pink is detected.
+    """
+
+    # Convert the image from BGR to HSV
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define the pink color range in HSV
+    lower_pink = np.array([130, 50, 100])  # Adjusted range for pink with extended value range
+    upper_pink = np.array([180, 255, 255])
+
+    # Create a binary mask for pink color
+    mask_pink = cv2.inRange(hsv_image, lower_pink, upper_pink)
+
+    # Get the coordinates of all pixels in the mask
+    y_coords, x_coords = np.where(mask_pink > 0)
+
+    if len(x_coords) < 100 or len(y_coords) < 100:
+        return False, None, None
+
+    # Calculate the median position of the pink pixels
+    median_x = int(np.median(x_coords))
+    median_y = int(np.median(y_coords))
+
+    # Draw a circle marker on the original image
+    center = (median_x, median_y)
+    cv2.circle(image, center, 10, (0, 255, 255), -1)  # Yellow marker for visibility
+
+    # Save the results
+    cv2.imwrite('./images/Pink_Mask.jpg', mask_pink)
+    cv2.imwrite('./images/Marked_Pink_Center.jpg', image)
+
+    return True, center, None

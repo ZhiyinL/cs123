@@ -100,9 +100,11 @@ class StateMachineNode(Node):
             '''
             rotate towards last time we've seen the ball
             '''
-            if self.normalized_ball_x is None: 
+            if self.normalized_ball_x is None or self.normalized_ball_x < 0: 
+                print("turning  left")
                 yaw_command = SEARCH_YAW_VEL * 1
             else:
+                print("turning right")
                 yaw_command = SEARCH_YAW_VEL * (-1 if self.normalized_ball_x > 0 else 1) 
         elif self.state == State.ALIGN:
             '''
