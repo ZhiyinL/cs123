@@ -4,7 +4,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from vision_msgs.msg import Detection2DArray
 from sensor_msgs.msg import CompressedImage
-from detect import detect_ball
+from detect import detect_ball, detect_net
 import numpy as np
 import time
 import cv2
@@ -13,10 +13,9 @@ import os
 # Control hyperparameters
 SEARCH_YAW_VEL = 0.5 #TODO searching constant
 TRACK_FORWARD_VEL = 0.03 #TODO tracking x-axis constant
-TRACK_HORIZONTAL_VEL = 0.05 #TODO tracking y-axis constant
+TRACK_HORIZONTAL_VEL = 0.05 #TODO tracking y-axis constant 
 SHOOT_VEL = 0.3
 
-# Other hyperparameters
 IMAGE_WIDTH = 1400
 
 class State(Enum):
@@ -45,8 +44,10 @@ class StateMachineNode(Node):
         self.state = State.SEARCH
 
         self.image = None # most up-to-date image
+        self.pink_exist, self.pink_coord = False, (0, 0) # (x, y) coordinate
         self.yellow_exist, self.yellow_coord  = False, (0, 0)
         self.normalized_ball_x = None
+        self.normalized_net_x = None
 
     def image_callback(self, msg):
         
@@ -56,10 +57,16 @@ class StateMachineNode(Node):
         # update image related features here
         self.yellow_exist, self.yellow_coord, self.yellow_radius = detect_ball(self.image) # TODO: check if jonah's return is normalized
         self.normalized_ball_x = (self.yellow_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.yellow_exist else None
-        print("Yellow Status: ", self.yellow_exist)
-        print(self.normalized_ball_x)
-    
-        return not self.yellow_exist
+        self.pink_exist, self.pink_coord, self.pink_radius = detect_net(self.image)
+        self.normalized_net_x = (self.pink_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.pink_exist else None
+        print("Yellow Status: ", self.yellow_exist, " yellow x: ", self.normalized_ball_x)
+        print("Pink Status: ", self.pink_exist, " pink x: ", self.normalized_net_x)
+
+    def aligned_to_shoot(self):
+        '''
+        We switch state 'ALIGN' to 'SHOOT' when we are in target position to shoot.
+        '''
+        return np.abs(self.normalized_ball_x) < 0.1 and np.abs(self.normalized_net_x) < 0.1
 
     def timer_callback(self):
         """
@@ -72,20 +79,14 @@ class StateMachineNode(Node):
         """
         
         # Step 1. State Transition
-        if not self.yellow_exist:
-            print("revert to search!")
+        if not self.yellow_exist or not self.pink_exist:
             self.state = State.SEARCH
-        elif np.abs(self.normalized_ball_x) >= 0.1 and np.abs(self.normalized_ball_x) <= 0.2:
-            print("switching to align!")
+        elif not self.aligned_to_shoot():
             self.state = State.ALIGN
-        elif np.abs(self.normalized_ball_x) < 0.1:
-            print("switching to shoot!")
-            self.state = State.SHOOT
         else:
-            self.state = State.SEARCH
-        
+            self.state = State.SHOOT
 
-        print(self.state)
+        print("State: ", self.state)
 
         # Step 2. State Execution
         yaw_command = 0.0
@@ -97,10 +98,10 @@ class StateMachineNode(Node):
             '''
             if self.normalized_ball_x is None or self.normalized_ball_x < 0: 
                 print("turning  left")
-                yaw_command = SEARCH_YAW_VEL * 1
+                yaw_command = SEARCH_YAW_VEL
             else:
                 print("turning right")
-                yaw_command = SEARCH_YAW_VEL * (-1 if self.normalized_ball_x > 0 else 1) 
+                yaw_command = -SEARCH_YAW_VEL
         elif self.state == State.ALIGN:
             '''
             consider move away from ball on x axis (forward / backward) and move towards the ball on y axis (horizontal)
@@ -113,8 +114,8 @@ class StateMachineNode(Node):
             shoot! assuming we have pupper face ball as well as the net farther away
             '''
             if not self.normalized_ball_x is None:
-                forward_vel_command = SHOOT_VEL
-                horizontal_vel_command = -TRACK_HORIZONTAL_VEL * (self.normalized_ball_x)
+                forward_vel_command = TRACK_FORWARD_VEL
+                horizontal_vel_command = TRACK_HORIZONTAL_VEL * (-1 if self.normalized_ball_x > 0 else 1) 
 
         cmd = Twist()
         cmd.angular.z = yaw_command

@@ -24,14 +24,14 @@ def detect_ball(image):
     # Apply the circular mask to the image
     masked_image = cv2.bitwise_and(hsv_image, hsv_image, mask=mask_roi)
 
+    cv2.imwrite('./images/yellow_adjusted_image.jpg', masked_image)
+
     # Define the yellow color range in HSV (we need to tune for ball)
     lower_yellow = np.array([15, 180, 200])
     upper_yellow = np.array([30, 255, 255])
 
     # Create a binary mask for yellow color
     mask_yellow = cv2.inRange(masked_image, lower_yellow, upper_yellow)
-
-    cv2.imwrite('./images/Yellow Mask.jpg', mask_yellow)
 
     # Find contours in the yellow mask
     contours, _ = cv2.findContours(mask_yellow, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -49,7 +49,7 @@ def detect_ball(image):
         circularity = 4 * np.pi * (area / (perimeter ** 2))
 
         # Check for circularity and size
-        if circularity > 0.3 and area > max_area and area > MIN_AREA:  # Adjust thresholds as needed
+        if circularity > 0 and area > max_area and area > MIN_AREA:  # Adjust thresholds as needed
             largest_blob = contour
             max_area = area
 
@@ -61,9 +61,8 @@ def detect_ball(image):
 
         # Draw the circle on the original image
         cv2.circle(image, center, radius, (0, 255, 0), 2)
-        cv2.imwrite('./images/yellow Masked Image.jpg', masked_image)
-  
-        cv2.imwrite('./images/Detected Largest yellow Blob.jpg', image)
+        cv2.imwrite('./images/yellow_masked_image.jpg', mask_yellow)
+        cv2.imwrite('./images/largest_yellow_blob_image.jpg', image)
         
         return True, center, radius
     return False, None, None
@@ -85,12 +84,26 @@ def detect_net(image):
     # Convert the image from BGR to HSV
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
+    # Create a mask for the circular region of interest (ROI)
+    height, width = image.shape[:2]
+    center = (width // 2, height // 2)  # Center of the image
+    radius = min(center) - 100  # Radius of the circle (assumes the circle fits within the image)
+
+    mask_roi = np.zeros((height, width), dtype=np.uint8)
+    cv2.circle(mask_roi, center, radius - 10, 255, thickness=-1)  # Adjust the radius
+
+    masked_image = cv2.bitwise_and(hsv_image, hsv_image, mask=mask_roi)
+
+    cv2.imwrite('./images/pink_adjusted_image.jpg', masked_image)
+
     # Define the pink color range in HSV
-    lower_pink = np.array([130, 50, 100])  # Adjusted range for pink with extended value range
+    lower_pink = np.array([130, 75, 150])  # Adjusted range for pink with extended value range
     upper_pink = np.array([180, 255, 255])
 
+    print(masked_image[center])
+
     # Create a binary mask for pink color
-    mask_pink = cv2.inRange(hsv_image, lower_pink, upper_pink)
+    mask_pink = cv2.inRange(masked_image, lower_pink, upper_pink)
 
     # Get the coordinates of all pixels in the mask
     y_coords, x_coords = np.where(mask_pink > 0)
