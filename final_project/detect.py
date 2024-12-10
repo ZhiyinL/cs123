@@ -100,8 +100,6 @@ def detect_net(image):
     lower_pink = np.array([130, 75, 150])  # Adjusted range for pink with extended value range
     upper_pink = np.array([180, 255, 255])
 
-    print(masked_image[center])
-
     # Create a binary mask for pink color
     mask_pink = cv2.inRange(masked_image, lower_pink, upper_pink)
 
@@ -110,10 +108,18 @@ def detect_net(image):
 
     if len(x_coords) < 100 or len(y_coords) < 100:
         return False, None, None
+    
+    x_coords, y_coords = get_largest_clump(x_coords, y_coords)
 
+    if len(x_coords) < 100 or len(y_coords) < 100:
+        return False, None, None
+    
+
+    x_coords = set(x_coords)
+    y_coords = set(y_coords)
     # Calculate the median position of the pink pixels
-    median_x = int(np.median(x_coords))
-    median_y = int(np.median(y_coords))
+    median_x = int(np.median(list(x_coords)))
+    median_y = int(np.median(list(y_coords)))
 
     # Draw a circle marker on the original image
     center = (median_x, median_y)
@@ -124,3 +130,46 @@ def detect_net(image):
     cv2.imwrite('./images/Marked_Pink_Center.jpg', image)
 
     return True, center, None
+
+def get_largest_clump(x_coords, y_coords, margin=2):
+    if len(x_coords) != len(y_coords):
+        raise ValueError("x_coords and y_coords must have the same length")
+    
+    # Combine and sort the coordinates based on x_coords
+    sorted_pairs = sorted(zip(x_coords, y_coords), key=lambda pair: pair[0])
+    sorted_x, sorted_y = zip(*sorted_pairs)
+    sorted_x = list(sorted_x)
+    sorted_y = list(sorted_y)
+    
+    # Initialize variables to track the largest clump
+    max_clump = []
+    max_y = []
+    
+    # Initialize the first clump
+    current_clump = [sorted_x[0]]
+    current_y = [sorted_y[0]]
+    
+    # Iterate through the sorted coordinates to find clumps
+    for i in range(1, len(sorted_x)):
+        if sorted_x[i] - sorted_x[i-1] <= margin:
+            # Continue the current clump
+            current_clump.append(sorted_x[i])
+            current_y.append(sorted_y[i])
+        else:
+            # Check if the current clump is the largest so far
+            if len(current_clump) > len(max_clump):
+                max_clump = current_clump
+                max_y = current_y
+            # Start a new clump
+            current_clump = [sorted_x[i]]
+            current_y = [sorted_y[i]]
+    
+    # After the loop, check the last clump
+    if len(current_clump) > len(max_clump):
+        max_clump = current_clump
+        max_y = current_y
+    
+    return max_clump, max_y
+
+        
+
