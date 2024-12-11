@@ -129,7 +129,7 @@ def detect_net(image):
     cv2.imwrite('./images/Pink_Mask.jpg', mask_pink)
     cv2.imwrite('./images/Marked_Pink_Center.jpg', image)
 
-    return True, center, None
+    return True, center, len(x_coords)
 
 def get_largest_clump(x_coords, y_coords, margin=2):
     if len(x_coords) != len(y_coords):

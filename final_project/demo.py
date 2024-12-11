@@ -12,10 +12,10 @@ import os
 
 # Control hyperparameters
 SEARCH_YAW_VEL = 0.5 #TODO searching constant
-TRACK_FORWARD_VEL = 0.04 #TODO tracking x-axis constant
+TRACK_FORWARD_VEL = 0.03 #TODO tracking x-axis constant
 TRACK_HORIZONTAL_VEL = 0.2 #TODO tracking y-axis constant 
-SHOOT_VEL = 0.3
-SHOOT_HORIZONTAL_ADJUST = -0.03
+SHOOT_VEL = 0.5
+SHOOT_HORIZONTAL_ADJUST = -0.05
 
 IMAGE_WIDTH = 1400
 
@@ -43,7 +43,7 @@ class StateMachineNode(Node):
         )
 
         # Time to setup for testing
-        time.sleep(10)
+        time.sleep(20)
 
         self.timer = self.create_timer(0.05, self.timer_callback)
         self.state = State.SEARCH
@@ -53,6 +53,7 @@ class StateMachineNode(Node):
         self.yellow_exist, self.yellow_coord  = False, (0, 0)
         self.normalized_ball_x = None
         self.normalized_net_x = None
+        self.prev_ball_x = None
 
         self.shoot_count = 0
         self.breathe_count = 0
@@ -63,20 +64,26 @@ class StateMachineNode(Node):
         self.image = cv2.imdecode(self.image, cv2.IMREAD_COLOR)
 
         # update image related features here
-        self.yellow_exist, self.yellow_coord, self.yellow_radius = detect_ball(self.image) # TODO: check if jonah's return is normalized
+        self.yellow_exist, self.yellow_coord, self.yellow_radius = detect_ball(self.image)
+        if self.normalized_ball_x is not None:
+            self.prev_ball_x == self.normalized_ball_x
         self.normalized_ball_x = (self.yellow_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.yellow_exist else None
-        self.pink_exist, self.pink_coord, self.pink_radius = detect_net(self.image)
+        self.pink_exist, self.pink_coord, self.pink_width = detect_net(self.image)
         self.normalized_net_x = (self.pink_coord[0] - IMAGE_WIDTH / 2) / (IMAGE_WIDTH / 2) if self.pink_exist else None
-        print("Yellow Status: ", self.yellow_exist, " yellow x: ", self.normalized_ball_x)
-        print("Pink Status: ", self.pink_exist, " pink x: ", self.normalized_net_x)
+        print("Yellow Status: ", self.yellow_exist, " yellow x: ", self.normalized_ball_x, "yellow radius: ", self.yellow_radius)
+        print("Pink Status: ", self.pink_exist, " pink x: ", self.normalized_net_x, "pink width: ", self.pink_width)
 
     def aligned_to_shoot(self):
         '''
         We switch state 'ALIGN' to 'SHOOT' when we are in target position to shoot.
         '''
-        ball = np.abs(self.normalized_ball_x)
-        net = np.abs(self.normalized_net_x)
-        return ball < 0.04 and net < 0.02 and np.abs(ball - net) < 0.04
+        aligned_far = np.abs(self.normalized_ball_x) < 0.05 and np.abs(self.normalized_net_x) < 0.05 and np.abs(self.normalized_ball_x - self.normalized_net_x) < 0.05
+        # relax parameters if really close since we lose accurate track of ball VALUES TESTED THROUGH IMAGE
+        aligned_close = self.yellow_radius > 115 and self.pink_width > 150 and np.abs(self.normalized_ball_x) < 0.1 and \
+        np.abs(self.normalized_net_x) < 0.1 and np.abs(self.normalized_ball_x - self.normalized_net_x) < 0.1
+
+        return aligned_close or aligned_far
+
 
     def timer_callback(self):
         """
@@ -86,24 +93,21 @@ class StateMachineNode(Node):
         states: SEARCH, ALIGN, SHOOT
             SEARCH ---see ball + net--> ALIGN
             ALIGN --in target position--> SHOOT
-        """
-        # Step 0. Sleep when shooting
-        if self.state == State.SHOOT:
-            self.shoot_count += 1
-            print("STATE: SHOOT COMMITTED")
-            if self.shoot_count % 20 != 0:
-                return
-            
-            
+        """ 
         # Step 1. State Transition
-        if not self.yellow_exist or not self.pink_exist:
+        if self.state == State.SHOOT and self.shoot_count % 8 != 0:
+            print("skipping")
+            print(self.shoot_count)
+        elif not self.yellow_exist or not self.pink_exist:
             self.state = State.SEARCH
         elif not self.aligned_to_shoot():
             self.state = State.ALIGN
-        elif self.breathe_count < 10:
+        elif self.breathe_count < 1:
             self.state = State.BREATHE
         else:
+            self.breath_count = 0
             self.state = State.SHOOT
+            self.shoot_count = 1
 
         print("State: ", self.state)
 
@@ -126,40 +130,51 @@ class StateMachineNode(Node):
             '''
             consider move away from ball on x axis (forward / backward) and move towards the ball on y axis (horizontal)
             '''
-            # Account for failed shot attempt
 
-            if not self.normalized_ball_x is None:
+            if not self.normalized_ball_x is None and not self.normalized_net_x is None:
                 # if aligned but off-center, turn. Angular velocity is half of search speed for accuracy
-                if np.abs(self.normalized_ball_x - self.normalized_net_x) < 0.05:
-                    print("Align - turning")
-                    yaw_command = SEARCH_YAW_VEL * (-1 if self.normalized_ball_x > 0 else 1)
-                    yaw_command = 0.1 * yaw_command + 0.9 * abs(self.normalized_net_x)
-
-                else: # Keep moving backwards and sideways
+                
+                target_x = 0.5 * (self.normalized_ball_x + self.normalized_net_x)
+                if np.abs(target_x) < 0.05:
                     print("Align - walking")
-                    forward_vel_command = -TRACK_FORWARD_VEL
-                    horizontal_vel_command = TRACK_HORIZONTAL_VEL * (-1 if self.normalized_ball_x > 0 else 1)
-                    scaling_factor = abs(self.normalized_ball_x - self.normalized_net_x) / 2.0
-                    forward_vel_command = 0.25 * forward_vel_command + 0.75 * forward_vel_command * scaling_factor
-                    horizontal_vel_command = 0.25 * horizontal_vel_command + 0.75 * horizontal_vel_command * scaling_factor
+                    # Walk forward or back towards ball threshold is at 0.25 because of fisheye (TESTED)
+                    if np.abs(self.normalized_ball_x) > 0.25:
+                        forward_vel_command = -TRACK_FORWARD_VEL
+                    elif np.abs(self.normalized_ball_x) < 0.15:
+                        forward_vel_command = TRACK_FORWARD_VEL
+
+                    # Walk left or right towards ball
+                    if self.normalized_ball_x > self.normalized_net_x:
+                        horizontal_vel_command = -TRACK_HORIZONTAL_VEL
+                    else:
+                        horizontal_vel_command = TRACK_HORIZONTAL_VEL
+                else:
+                    print("Align - turning")
+                    if target_x < -0.05: # Attempt to correct for left turn bias
+                        yaw_command = SEARCH_YAW_VEL * 0.5
+                    else:
+                        yaw_command = -SEARCH_YAW_VEL * 0.5
+                
+                    # horizontal_vel_command = TRACK_HORIZONTAL_VEL * (-1 if self.normalized_ball_x > 0 else 1)
+                    # scaling_factor = abs(self.normalized_ball_x - self.normalized_net_x) / 2.0
+                    # forward_vel_command = 0.25 * forward_vel_command + 0.75 * forward_vel_command * scaling_factor
+                    # horizontal_vel_command = 0.25 * horizontal_vel_command + 0.75 * horizontal_vel_command * scaling_factor
 
         elif self.state == State.BREATHE:
-            self.stop_moving()
             self.breathe_count += 1
-            return
 
         elif self.state == State.SHOOT:
             '''
             shoot! assuming we have pupper face ball as well as the net farther away
             '''
-
-            if not self.normalized_ball_x is None:
-                forward_vel_command = SHOOT_VEL
-                horizontal_vel_command = SHOOT_HORIZONTAL_ADJUST
-                self.shoot_count = 0
-        
-        
-        self.breathe_count = 0
+            print("SHOOTING")
+            forward_vel_command = SHOOT_VEL
+            if self.normalized_ball_x:
+                yaw_command = - SEARCH_YAW_VEL * 10.0 * self.normalized_ball_x
+            elif self.prev_ball_x:
+                yaw_command = - SEARCH_YAW_VEL * 10.0 * self.prev_ball_x
+            # horizontal_vel_command = SHOOT_HORIZONTAL_ADJUST - TRACK_HORIZONTAL_VEL * (self.normalized_ball_x)
+            self.shoot_count += 1
 
         cmd = Twist()
         cmd.angular.z = yaw_command
