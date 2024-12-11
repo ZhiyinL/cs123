@@ -103,12 +103,15 @@ class StateMachineNode(Node):
             self.state = State.SEARCH
         elif not self.aligned_to_shoot():
             self.state = State.ALIGN
-        elif self.breathe_count < 1:
+        elif self.breathe_count < 3:
             self.state = State.BREATHE
         else:
-            self.breath_count = 0
+            # self.breathe_count = 0
             self.state = State.SHOOT
             self.shoot_count = 1
+
+        if self.state != State.BREATHE:
+            self.breathe_count = 0
 
         print("State: ", self.state)
 
@@ -138,7 +141,7 @@ class StateMachineNode(Node):
                 target_x = 0.5 * (self.normalized_ball_x + self.normalized_net_x)
                 if np.abs(target_x) < 0.05:
                     print("Align - walking")
-                    cv2.imwrite(f'./images/all/align_walking_{self.debug_idx}.jpg', self.image)
+                    cv2.imwrite(f'./images/all/{self.debug_idx}_align_walking.jpg', self.image)
                     self.debug_idx += 1
                     # Walk forward or back towards ball threshold is at 0.25 because of fisheye (TESTED)
                     if np.abs(self.normalized_ball_x) > 0.25:
@@ -153,7 +156,7 @@ class StateMachineNode(Node):
                         horizontal_vel_command = TRACK_HORIZONTAL_VEL
                 else:
                     print("Align - turning")
-                    cv2.imwrite(f'./images/all/align_turning_{self.debug_idx}.jpg', self.image)
+                    cv2.imwrite(f'./images/all/{self.debug_idx}_align_turning.jpg', self.image)
                     self.debug_idx += 1
                     if target_x < -0.05: # Attempt to correct for left turn bias
                         yaw_command = SEARCH_YAW_VEL * 0.5
@@ -166,7 +169,7 @@ class StateMachineNode(Node):
                     # horizontal_vel_command = 0.25 * horizontal_vel_command + 0.75 * horizontal_vel_command * scaling_factor
 
         elif self.state == State.BREATHE:
-            cv2.imwrite(f'./images/all/align_breathe_{self.debug_idx}.jpg', self.image)
+            cv2.imwrite(f'./images/all/{self.debug_idx}_align_breathe.jpg', self.image)
             self.debug_idx += 1
             self.breathe_count += 1
 
@@ -175,7 +178,7 @@ class StateMachineNode(Node):
             shoot! assuming we have pupper face ball as well as the net farther away
             '''
             print("SHOOTING")
-            cv2.imwrite(f'./images/all/align_shoot_{self.debug_idx}.jpg', self.image)
+            cv2.imwrite(f'./images/all/{self.debug_idx}_align_shoot.jpg', self.image)
             self.debug_idx += 1
             
             if self.normalized_ball_x:
