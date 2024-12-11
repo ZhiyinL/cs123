@@ -57,6 +57,7 @@ class StateMachineNode(Node):
 
         self.shoot_count = 0
         self.breathe_count = 0
+        self.debug_idx = 0
 
     def image_callback(self, msg):
         
@@ -137,6 +138,8 @@ class StateMachineNode(Node):
                 target_x = 0.5 * (self.normalized_ball_x + self.normalized_net_x)
                 if np.abs(target_x) < 0.05:
                     print("Align - walking")
+                    cv2.imwrite(f'./images/all/align_walking_{self.debug_idx}.jpg', self.image)
+                    self.debug_idx += 1
                     # Walk forward or back towards ball threshold is at 0.25 because of fisheye (TESTED)
                     if np.abs(self.normalized_ball_x) > 0.25:
                         forward_vel_command = -TRACK_FORWARD_VEL
@@ -150,6 +153,8 @@ class StateMachineNode(Node):
                         horizontal_vel_command = TRACK_HORIZONTAL_VEL
                 else:
                     print("Align - turning")
+                    cv2.imwrite(f'./images/all/align_turning_{self.debug_idx}.jpg', self.image)
+                    self.debug_idx += 1
                     if target_x < -0.05: # Attempt to correct for left turn bias
                         yaw_command = SEARCH_YAW_VEL * 0.5
                     else:
@@ -161,6 +166,8 @@ class StateMachineNode(Node):
                     # horizontal_vel_command = 0.25 * horizontal_vel_command + 0.75 * horizontal_vel_command * scaling_factor
 
         elif self.state == State.BREATHE:
+            cv2.imwrite(f'./images/all/align_breathe_{self.debug_idx}.jpg', self.image)
+            self.debug_idx += 1
             self.breathe_count += 1
 
         elif self.state == State.SHOOT:
@@ -168,11 +175,15 @@ class StateMachineNode(Node):
             shoot! assuming we have pupper face ball as well as the net farther away
             '''
             print("SHOOTING")
-            forward_vel_command = SHOOT_VEL
+            cv2.imwrite(f'./images/all/align_shoot_{self.debug_idx}.jpg', self.image)
+            self.debug_idx += 1
+            
             if self.normalized_ball_x:
                 yaw_command = - SEARCH_YAW_VEL * 10.0 * self.normalized_ball_x
             elif self.prev_ball_x:
                 yaw_command = - SEARCH_YAW_VEL * 10.0 * self.prev_ball_x
+            forward_vel_command = SHOOT_VEL * max(0, min(1, (1 - 2 * np.abs(self.normalized_ball_x))))
+            print("yaw_command, forward_vel:", yaw_command, forward_vel_command)
             # horizontal_vel_command = SHOOT_HORIZONTAL_ADJUST - TRACK_HORIZONTAL_VEL * (self.normalized_ball_x)
             self.shoot_count += 1
 
