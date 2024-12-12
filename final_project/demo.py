@@ -9,6 +9,8 @@ import numpy as np
 import time
 import cv2
 import os
+from just_playback import Playback
+import threading
 
 # Control hyperparameters
 SEARCH_YAW_VEL = 0.5 #TODO searching constant
@@ -18,6 +20,59 @@ SHOOT_VEL = 0.5
 SHOOT_HORIZONTAL_ADJUST = -0.05
 
 IMAGE_WIDTH = 1400
+HOME_SOUND = "/home/pi/cs123/final_project/sounds/"
+
+class SoundModule:
+    def __init__(self):
+        self.playback = Playback()
+        self.current_sound_file = None
+        self.has_howled = False
+
+    def play(self, sound_file):
+        # Check if the same sound is already playing
+        if self.playback.playing and self.current_sound_file == sound_file:
+            return
+        
+        # Stop current playback if a different sound is requested
+        self.stop()
+
+        # Load and play the new sound file
+        self.current_sound_file = sound_file
+        self.playback.load_file(sound_file)
+        self.playback.play()
+    
+    def stop(self):
+        """Stops the currently playing sound."""
+        if self.playback.playing:
+            self.playback.stop()
+            self.current_sound_file = None
+
+    def bark(self):
+        print("bark!")
+        sound_file = f"{HOME_SOUND}/dog_bark.wav"
+        self.play(sound_file)
+
+    def howl(self):  # Only play once for every initialized sound module 
+        if not self.has_howled:
+            print("howl!")
+            sound_file = f"{HOME_SOUND}/howl.wav"
+            self.play(sound_file)
+            self.has_howled = True
+
+    def messi(self):
+        print("messi!")
+        sound_file = f"{HOME_SOUND}/messi.wav"
+        self.play(sound_file)
+
+    def jeopardy(self):
+        print("jeopardy!")
+        sound_file = f"{HOME_SOUND}/jeopardy.wav"
+        self.play(sound_file)
+
+    def siu(self):
+        print("siu!")
+        sound_file = f"{HOME_SOUND}/siu.wav"
+        self.play(sound_file)
 
 class State(Enum):
     SEARCH = 0
@@ -58,6 +113,9 @@ class StateMachineNode(Node):
         self.shoot_count = 0
         self.breathe_count = 0
         self.debug_idx = 0
+
+        # sound module
+        self.sound_module = SoundModule()
 
     def image_callback(self, msg):
         
@@ -112,9 +170,19 @@ class StateMachineNode(Node):
 
         if self.state != State.BREATHE:
             self.breathe_count = 0
-
         print("State: ", self.state)
 
+        # Step 1.5 Sound Module
+        if self.state == State.SEARCH:
+            self.sound_module.jeopardy()
+        elif self.state == State.ALIGN:
+            self.sound_module.howl() # will only activate the first it tries to howl
+            self.sound_module.messi()
+        elif self.state == State.BREATHE:
+            self.sound_module.stop()
+        elif self.state == State.SHOOT:
+            self.sound_module.bark()
+        
         # Step 2. State Execution
         yaw_command = 0.0
         horizontal_vel_command = 0.0
