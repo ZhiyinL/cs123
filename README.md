@@ -1,1 +1,1 @@
-This is the github repository for CS 123 Group 5 Labs. 
+Hello! Our project for Pupper is Pupper Soccer. The code for the project is located in final_project, and just requires `./run.sh` to run the necessary code. The only dependencies are ROS2 and whatever was downloaded for the previous labs, nothing more.
